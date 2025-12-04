@@ -1,0 +1,16 @@
+.container {
+  display: flex;
+  height: 100vh;
+  background: #0a0a0a;
+  color: white;
+}
+.content {
+  flex: 1;
+  padding: 20px;
+}
+.cards {
+  margin-top: 30px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 25px;
+}

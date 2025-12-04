@@ -1,0 +1,18 @@
+.topbar {
+  width: 100%;
+  background: #000;
+  color: #00ff88;
+  border-bottom: 2px solid #00ff88;
+  padding: 15px 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.logout-btn {
+  background: #00ff88;
+  padding: 8px 15px;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}

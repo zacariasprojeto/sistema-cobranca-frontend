@@ -1,0 +1,25 @@
+.card-info {
+  background: #000;
+  border: 2px solid #00ff88;
+  padding: 25px;
+  border-radius: 12px;
+  text-align: center;
+  color: #00ff88;
+  transition: 0.3s;
+  box-shadow: 0 0 15px #00ff88;
+}
+
+.card-info:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 25px #00ff88;
+}
+
+.card-info h3 {
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.card-info span {
+  font-size: 28px;
+  font-weight: bold;
+}
