@@ -7,12 +7,27 @@ import { router } from "./app";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// CORS CORRIGIDO
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
 app.use(express.json());
+
+// ROTA TESTE
+app.get("/", (req, res) => {
+  res.send("🚀 Backend do Sistema de Cobranças está online!");
+});
+
+// ROTAS
 app.use(router);
 
+// WHATSAPP
 startWhatsApp();
 
-app.listen(process.env.PORT, () =>
-  console.log(`🚀 Backend rodando na porta ${process.env.PORT}`)
-);
+// PORTA
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`🚀 Backend rodando na porta ${PORT}`));

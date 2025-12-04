@@ -2,66 +2,105 @@ import { Request, Response } from "express";
 import { supabase } from "../config/supabase";
 import { enviarMensagem } from "../services/whatsappService";
 
-export async function cobrancaManual(req: any, res: Response) {
-  const cliente_id = req.params.cliente_id;
+// 🔧 Converte número para formato WhatsApp válido
+function formatarNumero(numero: string): string {
+  if (!numero) return "";
+  numero = numero.replace(/\D/g, ""); // remove tudo que não é número
 
-  const { data: cliente } = await supabase
-    .from("clientes")
-    .select("*")
-    .eq("id", cliente_id)
-    .single();
+  // se tiver 10 ou 11 dígitos, adiciona DDI 55
+  if (numero.length === 10 || numero.length === 11) {
+    numero = "55" + numero;
+  }
 
-  if (!cliente) return res.status(404).json({ error: "Cliente não encontrado" });
-
-  const texto = `Olá ${cliente.nome}, você possui parcelas em atraso. Por favor regularize sua situação.`;
-
-  await enviarMensagem(cliente.telefone, texto);
-
-  await supabase.from("historico_envios").insert({
-    cliente_id,
-    tipo: "cobranca",
-    via: "whatsapp",
-    status: "enviado",
-    mensagem: texto
-  });
-
-  res.json({ message: "Cobrança enviada via WhatsApp." });
+  return numero + "@c.us";
 }
 
-export async function cobrancaAutomatica(req: Request, res: Response) {
+// ==========================================================
+// COBRANÇA MANUAL
+// ==========================================================
+export async function cobrancaManual(req: any, res: Response) {
+  try {
+    const cliente_id = req.params.cliente_id;
 
-  const { data: parcelas } = await supabase
-    .from("parcelas")
-    .select("*, clientes(*), emprestimos(*)")
-    .lt("vencimento", new Date().toISOString())
-    .eq("pago", false);
+    const { data: cliente, error } = await supabase
+      .from("clientes")
+      .select("*")
+      .eq("id", cliente_id)
+      .single();
 
-  if (!parcelas) return res.json({ message: "Nenhuma cobrança encontrada." });
+    if (error || !cliente) return res.status(404).json({ error: "Cliente não encontrado" });
 
-  for (const p of parcelas) {
-    const texto = `
-⚠️ ATENÇÃO, ${p.clientes.nome}
+    const numeroFormatado = formatarNumero(cliente.telefone);
 
-Sua parcela número ${p.numero} está em atraso.
+    const texto = `Olá ${cliente.nome}, você possui parcelas em atraso. Por favor, regularize sua situação.`;
 
-Valor original: R$ ${p.valor_original}
-Atraso: ${p.atraso_dias} dias
-Valor com juros: R$ ${p.valor_com_juros}
-
-Por favor regularize o pagamento.
-`;
-
-    await enviarMensagem(p.clientes.telefone, texto);
+    await enviarMensagem(numeroFormatado, texto);
 
     await supabase.from("historico_envios").insert({
-      cliente_id: p.cliente_id,
-      parcela_id: p.id,
-      tipo: "cobranca_automatica",
+      cliente_id,
+      tipo: "cobranca",
       via: "whatsapp",
       status: "enviado",
       mensagem: texto
     });
-  }
 
-  res.json({ message: "Cobranças automáticas enviadas." });
+    return res.json({ message: "Cobrança enviada via WhatsApp." });
+
+  } catch (e) {
+    console.error("Erro na cobrança manual:", e);
+    return res.status(500).json({ error: "Erro ao enviar cobrança manual." });
+  }
+}
+
+// ==========================================================
+// COBRANÇA AUTOMÁTICA (cron job)
+// ==========================================================
+export async function cobrancaAutomatica(req: Request, res: Response) {
+  try {
+    const { data: parcelas } = await supabase
+      .from("parcelas")
+      .select("*, clientes(*), emprestimos(*)")
+      .lt("vencimento", new Date().toISOString())
+      .eq("pago", false);
+
+    if (!parcelas || parcelas.length === 0) {
+      return res.json({ message: "Nenhuma cobrança encontrada." });
+    }
+
+    for (const p of parcelas) {
+      const cliente = p.clientes;
+
+      if (!cliente) continue;
+
+      const numeroFormatado = formatarNumero(cliente.telefone);
+
+      const texto = `
+⚠️ ATENÇÃO, ${cliente.nome}
+
+Sua parcela número ${p.numero} está em atraso.
+
+Valor: R$ ${p.valor}
+Vencimento: ${p.vencimento}
+
+Por favor regularize o pagamento.
+      `;
+
+      await enviarMensagem(numeroFormatado, texto);
+
+      await supabase.from("historico_envios").insert({
+        cliente_id: cliente.id,
+        parcela_id: p.id,
+        tipo: "cobranca_automatica",
+        via: "whatsapp",
+        status: "enviado",
+        mensagem: texto
+      });
+    }
+
+    return res.json({ message: "Cobranças automáticas enviadas." });
+
+  } catch (e) {
+    console.error("Erro na cobrança automática:", e);
+    return res.status(500).json({ error: "Erro ao enviar cobranças automáticas." });
+  }
 }

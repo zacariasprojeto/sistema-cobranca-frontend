@@ -1,26 +1,39 @@
 import makeWASocket, { fetchLatestBaileysVersion, useMultiFileAuthState } from "baileys";
+import { setWhatsAppClient } from "../services/whatsappService";
 
 export async function startWhatsApp() {
-  const { state, saveCreds } = await useMultiFileAuthState("./auth");
-  const { version } = await fetchLatestBaileysVersion();
-  
-  const sock = makeWASocket({
-    version,
-    printQRInTerminal: true,
-    auth: state
-  });
+  try {
+    const { state, saveCreds } = await useMultiFileAuthState("./auth");
+    const { version } = await fetchLatestBaileysVersion();
 
-  sock.ev.on("creds.update", saveCreds);
+    const sock = makeWASocket({
+      version,
+      printQRInTerminal: true,
+      auth: state
+    });
 
-  sock.ev.on("connection.update", (update) => {
-    if (update.connection === "open") {
-      console.log("📲 WhatsApp conectado com sucesso!");
-    }
-    if (update.connection === "close") {
-      console.log("❌ WhatsApp desconectado, tentando reconectar...");
-      startWhatsApp();
-    }
-  });
+    // Salva credenciais
+    sock.ev.on("creds.update", saveCreds);
 
-  return sock;
+    // Atualiza conexão
+    sock.ev.on("connection.update", (update) => {
+      if (update.connection === "open") {
+        console.log("📲 WhatsApp conectado com sucesso!");
+
+        // 🔥 AQUI É A MÁGICA:
+        setWhatsAppClient(sock); 
+        console.log("🔗 Cliente WhatsApp conectado ao backend!");
+      }
+
+      if (update.connection === "close") {
+        console.log("❌ WhatsApp desconectado, tentando reconectar...");
+        startWhatsApp();
+      }
+    });
+
+    return sock;
+
+  } catch (e) {
+    console.error("Erro ao iniciar WhatsApp:", e);
+  }
 }
