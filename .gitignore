@@ -1,25 +1,24 @@
-# Ignorar dependências
-node_modules/
-
-# Ignorar build do Vite
-dist/
-
 # Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# Cache do Vite
-.vite/
+node_modules
+dist
+dist-ssr
+*.local
 
-# Sistema do VSCode
-.vscode/
-
-# Arquivos temporários do sistema
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
-Thumbs.db
-
-# Env (caso use)
-.env
-.env.local
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
